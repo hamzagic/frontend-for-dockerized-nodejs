@@ -31,8 +31,8 @@
             <template>
               <tr v-for="client in clients" :key="client.id">
                 <td>{{ client.name }}</td>
-                <td>{{ client.amount }}</td>
-                <td>{{ client.date }}</td>
+                <td>{{ formatAmount(client.amount) }}</td>
+                <td>{{ formatDate(client.date) }}</td>
               </tr>
             </template>
           </tbody>
@@ -54,9 +54,12 @@
 </template>
 
 <script>
+import formatAmount from '@/mixins/formatAmount';
+import formatDate from '@/mixins/formatDate';
+
 export default {
   name: "ClientsList",
-
+  mixins: [formatAmount, formatDate],
   data() {
     return {
       clients: [],
@@ -74,6 +77,7 @@ export default {
   },
   created() {
     this.getClients();
+    console.log('ddd', process.env);
   },
   methods: {
     getClients(page, param) {
