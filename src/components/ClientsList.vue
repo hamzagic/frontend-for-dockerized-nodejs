@@ -16,19 +16,23 @@
         <template v-slot:default>
           <thead>
             <tr>
-              <th class="titles" @click="orderResult('name')">
+              <th class="titles" @click="getClients(undefined, 'name')">
                 Nome do cliente
               </th>
-              <th class="titles" @click="orderResult('amount')">Valor</th>
-              <th class="titles" @click="orderResult('date')">Desde</th>
+              <th class="titles" @click="getClients(undefined, 'amount')">
+                Valor
+              </th>
+              <th class="titles" @click="getClients(undefined, 'date')">
+                Desde
+              </th>
             </tr>
           </thead>
           <tbody>
             <template>
               <tr v-for="client in clients" :key="client.id">
                 <td>{{ client.name }}</td>
-                <td>{{ client.amount }}</td>
-                <td>{{ client.date }}</td>
+                <td>{{ formatAmount(client.amount) }}</td>
+                <td>{{ formatDate(client.date) }}</td>
               </tr>
             </template>
           </tbody>
@@ -50,9 +54,12 @@
 </template>
 
 <script>
+import formatAmount from '@/mixins/formatAmount';
+import formatDate from '@/mixins/formatDate';
+
 export default {
   name: "ClientsList",
-
+  mixins: [formatAmount, formatDate],
   data() {
     return {
       clients: [],
@@ -65,20 +72,33 @@ export default {
       limit: 5,
       offset: 0,
       searchParam: "",
+      currentParam: ''
     };
   },
   created() {
     this.getClients();
+    console.log('ddd', process.env);
   },
   methods: {
-    getClients(page) {
+    getClients(page, param) {
       if (typeof page === "undefined") page = 1;
       let offset = page == 1 ? this.offset : (page - 1) * this.limit;
 
-      const payload = {
-        limit: this.limit,
-        offset: offset,
-      };
+      let payload;
+
+      if (!param) {
+        payload = {
+          limit: this.limit,
+          offset: offset,
+        };
+      } else {
+        payload = {
+          limit: this.limit,
+          offset: offset,
+          param: param
+        };
+        this.currentParam = param;
+      }
 
       const options = {
         method: "POST",
@@ -101,30 +121,31 @@ export default {
       this.pagination.currentPage == this.totalPages
         ? this.pagination.currentPage
         : this.pagination.currentPage + 1;
-      this.getClients(this.pagination.currentPage);
+      this.getClients(this.pagination.currentPage, this.currentParam);
     },
     prevPage() {
       this.pagination.currentPage == 1
         ? this.total
         : this.pagination.currentPage - 1;
-      this.getClients(this.pagination.currentPage);
+      this.getClients(this.pagination.currentPage, this.currentParam);
     },
     changePage() {
-      this.getClients(this.pagination.currentPage);
+      this.getClients(this.pagination.currentPage, this.currentParam);
     },
-    getResults(data) {
-      let payload;
-      if (data === "undefined") {
-        payload = {
-          fname: this.searchParam,
-        };
-      } else {
-        payload = {
-          param: data,
-        };
+    getResults(page) {
+      if (typeof page === "undefined") page = 1;
+      let offset = page == 1 ? this.offset : (page - 1) * this.limit;
+
+      if (!this.searchParam) {
+        this.getClients();
+        return;
       }
 
-      console.log("dsfdsfs", data);
+      const payload = {
+        fname: this.searchParam,
+        offset: offset,
+        limit: this.limit,
+      };
 
       const options = {
         method: "POST",
@@ -136,16 +157,13 @@ export default {
       fetch("http://localhost/search", options)
         .then((res) => res.json())
         .then((data) => {
-          console.log(data);
+          this.searchParam = "";
           this.clients = data.data;
           this.total = data.total;
           this.pagination.currentPage = 1;
         })
         .catch((err) => console.log(err));
-    },
-    orderResult(data) {
-      this.getResults(data);
-    },
+    }
   },
   computed: {
     totalPages() {
