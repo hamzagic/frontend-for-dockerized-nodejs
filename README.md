@@ -1,4 +1,4 @@
-# mazzatech-frontend
+# Front end for dockerized nodejs project
 
 ## Project setup
 ```
